@@ -1,4 +1,6 @@
 import tennisML as tML
+import pandas as pd
+import numpy as np
 from xgboost import XGBClassifier
 from sklearn.metrics import log_loss
 import os
@@ -89,4 +91,4 @@ ML_cols.remove('player_1_win')
 preds_df['player_1_win_probability'] = model.predict_proba(preds_df[ML_cols])[:,1]
 
 #Average predicted win rating for each player
-preds_df.groupby('player_1')['player_1_win_probability'].agg('mean').sort_values(ascending=False).head(100)
+print(preds_df.groupby('player_1')['player_1_win_probability'].agg('mean').sort_values(ascending=False).head(100))
