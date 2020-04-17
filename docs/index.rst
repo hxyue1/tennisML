@@ -10,6 +10,7 @@ Welcome to tennisML's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   _modules/modules
 
 
 Indices and tables
