@@ -2,3 +2,6 @@ pandas
 numpy
 xgboost
 sklearn
+sphinx
+sphinx_rtd_theme
+
