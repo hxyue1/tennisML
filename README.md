@@ -11,5 +11,5 @@ python runscript.py
 ## Documentation
 First auto-generate the *.rst files
 ```
-sphinx-apidoc --force -o docs/_modules . Data
+env SPHINX_APIDOC_OPTIONS=members sphinx-apidoc --force -o docs/_modules . runscript.py Data
 ```
