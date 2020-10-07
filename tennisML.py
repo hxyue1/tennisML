@@ -69,19 +69,19 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
     
     #Renaming columns
     new_cols = [
-    'Unnamed: 0', 'tourney_id', 'tourney_name', 'surface', 'draw_size',
-       'tourney_level', 'match_num', 'winner_id', 'winner_seed',
-       'winner_entry', 'winner_name', 'winner_hand', 'winner_ht', 'winner_ioc',
-       'winner_age', 'winner_rank', 'winner_rank_points', 'loser_id',
-       'loser_seed', 'loser_entry', 'loser_name', 'loser_hand', 'loser_ht',
-       'loser_ioc', 'loser_age', 'loser_rank', 'loser_rank_points', 'score',
-       'best_of', 'round', 'minutes', 'winner_ace', 'winner_df', 'winner_svpt', 'winner_1stIn',
-       'winner_1stWon', 'winner_2ndWon', 'winner_SvGms', 'winner_bpSaved', 'winner_bpFaced', 'loser_ace',
-       'loser_df', 'loser_svpt', 'loser_1stIn', 'loser_1stWon', 'loser_2ndWon', 'loser_SvGms',
-       'loser_bpSaved', 'loser_bpFaced', 'W1', 'W2', 'W3', 'W4', 'W5', 'L1', 'L2',
-       'L3', 'L4', 'L5', 'retirement', 'WTB1', 'LTB1', 'WTB2', 'LTB2', 'WTB3',
-       'LTB3', 'WTB4', 'LTB4', 'WTB5', 'LTB5', 'tourney_start_date', 'year',
-       'match_id', 'winner_old_elo', 'loser_old_elo'
+        'tourney_id', 'tourney_name', 'surface', 'draw_size',
+        'tourney_level', 'match_num', 'winner_id', 'winner_seed',
+        'winner_entry', 'winner_name', 'winner_hand', 'winner_ht', 'winner_ioc',
+        'winner_age', 'winner_rank', 'winner_rank_points', 'loser_id',
+        'loser_seed', 'loser_entry', 'loser_name', 'loser_hand', 'loser_ht',
+        'loser_ioc', 'loser_age', 'loser_rank', 'loser_rank_points', 'score',
+        'best_of', 'round', 'minutes', 'winner_ace', 'winner_df', 'winner_svpt', 'winner_1stIn',
+        'winner_1stWon', 'winner_2ndWon', 'winner_SvGms', 'winner_bpSaved', 'winner_bpFaced', 'loser_ace',
+        'loser_df', 'loser_svpt', 'loser_1stIn', 'loser_1stWon', 'loser_2ndWon', 'loser_SvGms',
+        'loser_bpSaved', 'loser_bpFaced', 'W1', 'W2', 'W3', 'W4', 'W5', 'L1', 'L2',
+        'L3', 'L4', 'L5', 'retirement', 'WTB1', 'LTB1', 'WTB2', 'LTB2', 'WTB3',
+        'LTB3', 'WTB4', 'LTB4', 'WTB5', 'LTB5', 'tourney_start_date', 'year',
+        'match_id', 'winner_old_elo', 'loser_old_elo'
     ]
     
     df.columns = new_cols
@@ -91,7 +91,7 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
     df = df.loc[(df['tourney_level'].isin(tourneys_to_include)) &\
             (df['year'] >= start_year-1) & (df['surface'] == surface)&\
             (~df['round'].isin(['Q1', 'Q2', 'Q3', 'Q4']))
-           ]
+           ].copy()
 
     #Converting dates to datetime
     df.loc[:,'tourney_start_date'] = pd.to_datetime(df['tourney_start_date'])
@@ -258,7 +258,8 @@ def get_tournament_features(df_long, player_names, tourney_start_date, rolling_c
 
     #Taking a rolling average of the x (window_length) most recent matches before specified tournament date,
     #for features specified in rolling_cols
-    ma_features = player_data.groupby('player_name')[rolling_cols].rolling(window,1).mean().reset_index()
+    #ma_features = player_data.groupby('player_name')[rolling_cols].rolling(window,1).mean().reset_index() works in pandas 0.25.1, but no longer in 1.1.0
+    ma_features = player_data[['player_name']+rolling_cols].groupby('player_name')[rolling_cols].rolling(window,1).mean().reset_index()
 
     #Only taking the most recent rolling average
     ma_features = ma_features.groupby('player_name').tail(1)
