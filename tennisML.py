@@ -22,51 +22,55 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
         
     """
     
-    #Performing elo calculation, see: https://www.betfair.com.au/hub/tennis-elo-modelling
-    all_names = list(set(df.loser_name.unique()) | set(df.winner_name.unique()))
+# =============================================================================
+#     
+#     #Performing elo calculation, see: https://www.betfair.com.au/hub/tennis-elo-modelling
+#     all_names = list(set(df.loser_name.unique()) | set(df.winner_name.unique()))
+#     
+#     elo_dict = {player:[1500] for player in all_names}
+# 
+#     i = 0
+# 
+#     previous_winner_elos = []
+#     previous_loser_elos = []
+# 
+#     for index, row in df.iterrows():
+# 
+#         winner = row.winner_name
+#         loser = row.loser_name
+# 
+#         winner_elos = elo_dict[winner]
+#         loser_elos = elo_dict[loser]
+# 
+#         winner_matches = len(winner_elos)
+#         loser_matches = len(loser_elos)
+# 
+#         winner_old_elo = winner_elos[-1]
+#         loser_old_elo = loser_elos[-1]
+# 
+#         previous_winner_elos.append(winner_old_elo)
+#         previous_loser_elos.append(loser_old_elo)
+# 
+#         pr_p1_win_elo = 1/(1+10**((loser_old_elo - winner_old_elo)/400))
+#         pr_p2_win_elo = 1/(1+10**((winner_old_elo - loser_old_elo)/400))
+# 
+#         winner_K = 250/((winner_matches+5)**0.4)
+#         loser_K = 250/((loser_matches+5)**0.4)
+# 
+#         winner_new_elo = winner_old_elo + winner_K*(1-pr_p1_win_elo)
+#         loser_new_elo = loser_old_elo + loser_K*(0-pr_p2_win_elo)
+# 
+#         winner_elos.append(winner_new_elo)
+#         loser_elos.append(loser_new_elo)
+# 
+#         elo_dict[winner] = winner_elos
+#         elo_dict[loser] = loser_elos
+#     
+#     df.loc[:,'winner_old_elo'] = previous_winner_elos
+#     df.loc[:,'loser_old_elo'] = previous_loser_elos
+# =============================================================================
     
-    elo_dict = {player:[1500] for player in all_names}
-
-    i = 0
-
-    previous_winner_elos = []
-    previous_loser_elos = []
-
-    for index, row in df.iterrows():
-
-        winner = row.winner_name
-        loser = row.loser_name
-
-        winner_elos = elo_dict[winner]
-        loser_elos = elo_dict[loser]
-
-        winner_matches = len(winner_elos)
-        loser_matches = len(loser_elos)
-
-        winner_old_elo = winner_elos[-1]
-        loser_old_elo = loser_elos[-1]
-
-        previous_winner_elos.append(winner_old_elo)
-        previous_loser_elos.append(loser_old_elo)
-
-        pr_p1_win_elo = 1/(1+10**((loser_old_elo - winner_old_elo)/400))
-        pr_p2_win_elo = 1/(1+10**((winner_old_elo - loser_old_elo)/400))
-
-        winner_K = 250/((winner_matches+5)**0.4)
-        loser_K = 250/((loser_matches+5)**0.4)
-
-        winner_new_elo = winner_old_elo + winner_K*(1-pr_p1_win_elo)
-        loser_new_elo = loser_old_elo + loser_K*(0-pr_p2_win_elo)
-
-        winner_elos.append(winner_new_elo)
-        loser_elos.append(loser_new_elo)
-
-        elo_dict[winner] = winner_elos
-        elo_dict[loser] = loser_elos
-    
-    df.loc[:,'winner_old_elo'] = previous_winner_elos
-    df.loc[:,'loser_old_elo'] = previous_loser_elos
-    
+    df = calculate_elo(df)
     #Renaming columns
     new_cols = [
         'tourney_id', 'tourney_name', 'surface', 'draw_size',
@@ -81,7 +85,7 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
         'loser_bpSaved', 'loser_bpFaced', 'W1', 'W2', 'W3', 'W4', 'W5', 'L1', 'L2',
         'L3', 'L4', 'L5', 'retirement', 'WTB1', 'LTB1', 'WTB2', 'LTB2', 'WTB3',
         'LTB3', 'WTB4', 'LTB4', 'WTB5', 'LTB5', 'tourney_start_date', 'year',
-        'match_id', 'winner_old_elo', 'loser_old_elo'
+        'match_id', 'winner_old_elo', 'loser_old_elo', 'winner_old_elo_surface_specific', 'loser_old_elo_surface_specific'
     ]
     
     df.columns = new_cols
@@ -153,7 +157,127 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
     df.fillna(df.mean(), inplace=True)
     
     return(df)
+
+def calculate_elo(df):
+    """Calculates elo for players with breakdowns for specific surfaces. """
     
+    #Performing elo calculation, see: https://www.betfair.com.au/hub/tennis-elo-modelling
+    all_names = list(set(df.loser_name.unique()) | set(df.winner_name.unique()))
+    
+    elo_dict_all_surfaces = {player:[1500] for player in all_names}
+    elo_dict_grass = {player:[1500] for player in all_names}
+    elo_dict_carpet = {player:[1500] for player in all_names}
+    elo_dict_clay = {player:[1500] for player in all_names}
+    elo_dict_hard = {player:[1500] for player in all_names}
+
+    #Performing all court elo calculation
+    i = 0
+
+    previous_winner_elos_all_surfaces = []
+    previous_loser_elos_all_surfaces = []
+    previous_winner_elos_surface_specific = []
+    previous_loser_elos_surface_specific = []
+
+    for index, row in df.iterrows():
+
+        winner = row.winner_name
+        loser = row.loser_name
+        
+        if row['surface'] == 'Grass':
+            elo_dict_surface_specific = elo_dict_grass
+        elif row['surface'] == 'Carpet':
+            elo_dict_surface_specific = elo_dict_carpet
+        elif row['surface'] == 'Clay':
+            elo_dict_surface_specific = elo_dict_clay
+        elif row['surface'] == 'Hard':
+            elo_dict_surface_specific = elo_dict_hard
+        
+        #################################
+        #Elo calculation for all surfaces
+        #################################
+            
+        #Getting elo history of the current winner and loser
+        winner_elos_all_surfaces = elo_dict_all_surfaces[winner]
+        loser_elos_all_surfaces = elo_dict_all_surfaces[loser]
+
+        #Getting number of matches for winner and loser
+        winner_matches_all_surfaces = len(winner_elos_all_surfaces)
+        loser_matches_all_surfaces = len(loser_elos_all_surfaces)
+
+        #Getting the player's last elo rating
+        winner_old_elo_all_surfaces = winner_elos_all_surfaces[-1]
+        loser_old_elo_all_surfaces = loser_elos_all_surfaces[-1]
+
+        #Updating the previous elo for the winner and loser of the current match (will be used as variables in prediction)
+        previous_winner_elos_all_surfaces.append(winner_old_elo_all_surfaces)
+        previous_loser_elos_all_surfaces.append(loser_old_elo_all_surfaces)
+        
+        #Predicting win probabilities based on elos
+        pr_p1_win_elo_all_surfaces = 1/(1+10**((loser_old_elo_all_surfaces - winner_old_elo_all_surfaces)/400))
+        pr_p2_win_elo_all_surfaces = 1/(1+10**((winner_old_elo_all_surfaces - loser_old_elo_all_surfaces)/400))
+        
+        #K factor used in elo calculation (controls speed of update, see the betfair link)
+        winner_K_all_surfaces = 250/((winner_matches_all_surfaces+5)**0.4)
+        loser_K_all_surfaces = 250/((loser_matches_all_surfaces+5)**0.4)
+        
+        #Caluclating new elo
+        winner_new_elo_all_surfaces = winner_old_elo_all_surfaces + winner_K_all_surfaces*(1-pr_p1_win_elo_all_surfaces)
+        loser_new_elo_all_surfaces = loser_old_elo_all_surfaces + loser_K_all_surfaces*(0-pr_p2_win_elo_all_surfaces)
+
+        #Updating elos
+        winner_elos_all_surfaces.append(winner_new_elo_all_surfaces)
+        loser_elos_all_surfaces.append(loser_new_elo_all_surfaces)
+        
+        #Storing updated elos in elo dict
+        elo_dict_all_surfaces[winner] = winner_elos_all_surfaces
+        elo_dict_all_surfaces[loser] = loser_elos_all_surfaces
+        
+        #################################
+        #Elo calculation for specific surfaces
+        #################################
+            
+        #Getting elo history of the current winner and loser
+        winner_elos_surface_specific = elo_dict_surface_specific[winner]
+        loser_elos_surface_specific = elo_dict_surface_specific[loser]
+
+        #Getting number of matches for winner and loser
+        winner_matches_surface_specific = len(winner_elos_surface_specific)
+        loser_matches_surface_specific = len(loser_elos_surface_specific)
+
+        #Getting the player's last elo rating
+        winner_old_elo_surface_specific = winner_elos_surface_specific[-1]
+        loser_old_elo_surface_specific = loser_elos_surface_specific[-1]
+
+        #Updating the previous elo for the winner and loser of the current match (will be used as variables in prediction)
+        previous_winner_elos_surface_specific.append(winner_old_elo_surface_specific)
+        previous_loser_elos_surface_specific.append(loser_old_elo_surface_specific)
+        
+        #Predicting win probabilities based on elos
+        pr_p1_win_elo_surface_specific = 1/(1+10**((loser_old_elo_surface_specific - winner_old_elo_surface_specific)/400))
+        pr_p2_win_elo_surface_specific = 1/(1+10**((winner_old_elo_surface_specific - loser_old_elo_surface_specific)/400))
+        
+        #K factor used in elo calculation (controls speed of update, see the betfair link)
+        winner_K_surface_specific = 250/((winner_matches_surface_specific+5)**0.4)
+        loser_K_surface_specific = 250/((loser_matches_surface_specific+5)**0.4)
+        
+        #Caluclating new elo
+        winner_new_elo_surface_specific = winner_old_elo_surface_specific + winner_K_surface_specific*(1-pr_p1_win_elo_surface_specific)
+        loser_new_elo_surface_specific = loser_old_elo_surface_specific + loser_K_surface_specific*(0-pr_p2_win_elo_surface_specific)
+
+        #Updating elos
+        winner_elos_surface_specific.append(winner_new_elo_surface_specific)
+        loser_elos_surface_specific.append(loser_new_elo_surface_specific)
+        
+        #Storing updated elos in elo dict
+        elo_dict_surface_specific[winner] = winner_elos_surface_specific
+        elo_dict_surface_specific[loser] = loser_elos_surface_specific
+    
+    df.loc[:,'winner_old_elo'] = previous_winner_elos_all_surfaces
+    df.loc[:,'loser_old_elo'] = previous_loser_elos_all_surfaces 
+    df.loc[:,'winner_old_elo_surface_specific'] = previous_winner_elos_surface_specific
+    df.loc[:,'loser_old_elo_surface_specific'] = previous_loser_elos_surface_specific
+    
+    return(df)
 
 def convert_long(df):    
     """Converts cleaned match data into long form by splitting each match into two observations, one for the winner and one for the loser.
