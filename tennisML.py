@@ -6,14 +6,14 @@ import re
 
 """Still need to tidy up docstrings and name of file"""
 
-def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
+def data_cleaning(df, surfaces, tourneys_to_include, start_year=1999):
     """Performs initial data cleaning on match level data to prepare for data transformation and feature engineering.
     
     Function works with ATP match data obtained from the R package Deuce: https://github.com/skoval/deuce. Probably works with WTA data but you might need to rename the columns.
     
     Args:
         df (pandas.DataFrame): ATP match data from the R package Deuce imported as a pandas DataFrame.
-        surface (string): One of either 'Hard', 'Clay', 'Grass', 'Indoor Hard' or 'Carpet'.
+        surfaces (list): List of strings containing one or more of 'Hard', 'Clay', 'Grass', 'Indoor Hard' or 'Carpet'.
         tourneys_to_include (list): Level of matches to be included in aggregation for a tournament can include 'Grand Slams', '250 or 500', 'Davis Cup', 'Masters', 'Challenger', 'Tour Finals' or 'Futures'.
         start_year (int): Year to start aggregating data. This should be at least one year before the first tournmanet you want included in training your model.
     
@@ -93,7 +93,7 @@ def data_cleaning(df, surface, tourneys_to_include, start_year=1999):
     #You can change what matches to include. I've chosen to exclude Futures matches and the Challenger tour
     # tourney_levels = 'Grand Slams', '250 or 500', 'Davis Cup', 'Masters', 'Challenger', 'Tour Finals', 'Futures'
     df = df.loc[(df['tourney_level'].isin(tourneys_to_include)) &\
-            (df['year'] >= start_year-1) & (df['surface'] == surface)&\
+            (df['year'] >= start_year-1) & (df['surface'].isin(surfaces))&\
             (~df['round'].isin(['Q1', 'Q2', 'Q3', 'Q4']))
            ].copy()
 
